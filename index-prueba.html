@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pug Chef - Panel de Control de Pruebas</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        /* El juego real se carga de fondo ocupando toda la pantalla */
+        #pantalla-juego-real {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Panel flotante exclusivo para que tú hagas las pruebas */
+        #panel-control {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 99999;
+            background: rgba(30, 39, 46, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            color: white;
+            width: 260px;
+        }
+
+        #panel-control h3 {
+            margin: 0 0 10px 0;
+            font-size: 15px;
+            text-align: center;
+            border-bottom: 2px solid #00d2d3;
+            padding-bottom: 6px;
+        }
+
+        .btn-test {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 6px;
+            background: #0984e3;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .btn-test:hover { background: #74b9ff; }
+    </style>
+</head>
+<body>
+
+    <!-- BOTONERA DE CONTROL (FLOTANTE) -->
+    <div id="panel-control">
+        <h3>🧪 PROBAR REGALOS (LOCAL)</h3>
+        <button class="btn-test" onclick="lanzarPrueba('Rosa')">🌹 Enviar Rosa</button>
+        <button class="btn-test" onclick="lanzarPrueba('Dona')">🍩 Enviar Dona</button>
+        <button class="btn-test" onclick="lanzarPrueba('Helado')">🍦 Enviar Helado</button>
+    </div>
+
+    <!-- AQUÍ SE CARGA TU JUEGO REAL AUTOMÁTICAMENTE -->
+    <iframe id="pantalla-juego-real" src="/"></iframe>
+
+    <!-- CONEXIÓN CON EL SERVIDOR PARA MANDAR LAS SEÑALES -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        function lanzarPrueba(nombreRegalo) {
+            // Enviamos la señal al servidor de que queremos simular un regalo
+            socket.emit('simular-regalo', {
+                username: 'PugTester🐾',
+                giftName: nombreRegalo,
+                count: 1
+            });
+        }
+    </script>
+</body>
+</html>
