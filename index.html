@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pug Chef Realista Live</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #111827;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #game-container {
+            position: relative;
+            width: 600px;
+            height: 750px;
+            background: linear-gradient(to bottom, #2563eb, #1d4ed8);
+            border: 6px solid #f59e0b;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+
+        #kitchen-bg {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 180px;
+            background: url('cocina_fondo.png') no-repeat center bottom;
+            background-size: cover;
+            border-top: 8px solid #4b5563;
+        }
+
+        /* --- SISTEMA DEL PUG MULTICAPA --- */
+        #pug-container {
+            position: absolute;
+            bottom: 120px;
+            left: calc(50% - 100px);
+            width: 200px;
+            height: 200px;
+            transition: transform 0.2s ease;
+        }
+
+        /* Cuerpo principal del perro */
+        #pug-body {
+            width: 100%;
+            height: 100%;
+            background: url('pug_cuerpo.png') no-repeat center;
+            background-size: contain;
+            position: absolute;
+            z-index: 2;
+        }
+
+        /* Sombrero de chef encima */
+        #chef-hat {
+            position: absolute;
+            top: -40px;
+            left: calc(50% - 40px);
+            width: 80px;
+            height: 80px;
+            background: url('sombrero_chef.png') no-repeat center;
+            background-size: contain;
+            z-index: 5;
+        }
+
+        /* Patitas delanteras independientes (sin dedos, solo la pata redondeada) */
+        .pata {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: url('pug_pata.png') no-repeat center;
+            background-size: contain;
+            z-index: 4;
+            transform-origin: top center; /* Eje para simular el pivote del hombro */
+        }
+        .pata-izq { left: 20px; bottom: 20px; }
+        .pata-der { right: 20px; bottom: 20px; }
+
+        /* --- ANIMACIONES ACTIVADAS POR JS --- */
+        
+        /* 1. Animación de Cocinado (Cuerpo salta y patitas baten rápido) */
+        .cooking #pug-body {
+            animation: bodyBounce 0.15s infinite alternate;
+        }
+        .cooking .pata-izq {
+            animation: batirPataIzq 0.1s infinite alternate;
+        }
+        .cooking .pata-der {
+            animation: batirPataDer 0.1s infinite alternate;
+        }
+
+        /* 2. Animación de Saludo / Celebración (Para regalos grandes) */
+        .celebrating {
+            animation: celebrateSpin 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes bodyBounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-8px) scaleY(1.05); }
+        }
+
+        @keyframes batirPataIzq {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-35deg) translateY(-5px); }
+        }
+
+        @keyframes batirPataDer {
+            0% { transform: rotate(-35deg) translateY(-5px); }
+            100% { transform: rotate(0deg); }
+        }
+
+        @keyframes celebrateSpin {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.2) translateY(-30px) rotate(360deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+
+        /* --- ENTREGA DE COMIDA EN PNG REAL --- */
+        .food-item {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            bottom: 240px;
+            left: calc(50% - 60px);
+            opacity: 0;
+            z-index: 10;
+        }
+
+        .food-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .deliver-food {
+            animation: deliverAnimation 1.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes deliverAnimation {
+            0% {
+                bottom: 240px;
+                opacity: 0;
+                transform: scale(0.4) rotate(0deg);
+            }
+            30% {
+                opacity: 1;
+                transform: scale(1.2) rotate(10deg);
+            }
+            100% {
+                bottom: 550px;
+                opacity: 0;
+                transform: scale(0.6) rotate(180deg);
+            }
+        }
+
+        /* Alertas */
+        #alert-box {
+            position: absolute;
+            top: 30px;
+            left: 5%;
+            width: 90%;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 40px;
+            border: 4px solid #f59e0b;
+            font-size: 22px;
+            font-weight: bold;
+            display: none;
+            text-align: center;
+            box-sizing: border-box;
+            z-index: 20;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="alert-box">¡Preparando tu orden!</div>
+
+        <!-- Personaje en Capas -->
+        <div id="pug-container">
+            <div id="chef-hat"></div>
+            <div id="pug-body"></div>
+            <div class="pata pata-izq"></div>
+            <div class="pata pata-der"></div>
+        </div>
+
+        <!-- Plato de Comida Realista Dinámico -->
+        <div id="food-container" class="food-item">
+            <img id="food-img" src="" alt="Comida">
+        </div>
+
+        <div id="kitchen-bg"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        const pugContainer = document.getElementById('pug-container');
+        const pugBody = document.getElementById('pug-body');
+        const foodContainer = document.getElementById('food-container');
+        const foodImg = document.getElementById('food-img');
+        const alertBox = document.getElementById('alert-box');
+
+        // =========================================================
+        // CONFIGURACIÓN DE REGALOS CON IMÁGENES REALES (PNG)
+        // =========================================================
+        const REGALOS_CONFIG = {
+            "Rose": {
+                imagen: "papas_fritas_real.png", // Asegúrate de subir esta imagen a tu proyecto
+                nombre: "un combo de Papas Fritas",
+                tipo: "comun"
+            },
+            "Finger Heart": {
+                imagen: "hamburguesa_real.png",
+                nombre: "una Hamburguesa Gourmet",
+                tipo: "comun"
+            },
+            "Donut": {
+                imagen: "pastel_boda_real.png",
+                nombre: "¡un espectacular Pastel de Bodas!",
+                tipo: "premium" // Desencadenará gestos especiales del perro
+            }
+        };
+
+        socket.on('new-gift', (giftData) => {
+            const config = REGALOS_CONFIG[giftData.giftName];
+            if (config) {
+                cocinar(giftData.username, config.imagen, config.nombre, config.tipo);
+            }
+        });
+
+        function cocinar(usuario, rutaImagen, nombreComida, tipo) {
+            mostrarAlerta(¡@${usuario} pidió ${nombreComida}!);
+            
+            // Si es un regalo premium, cambia la cara del Pug y celebra antes de cocinar
+            if (tipo === "premium") {
+                pugBody.style.backgroundImage = "url('pug_cara_feliz.png')"; // Imagen feliz
+                pugContainer.classList.add('celebrating');
+                reproducirSonidoCelebracion();
+                
+                setTimeout(() => {
+                    pugContainer.classList.remove('celebrating');
+                    comenzarCocinado(rutaImagen);
+                }, 1000);
+            } else {
+                comenzarCocinado(rutaImagen);
+            }
+        }
+
+        function comenzarCocinado(rutaImagen) {
+            pugContainer.classList.add('cooking');
+
+            setTimeout(() => {
+                pugContainer.classList.remove('cooking');
+                pugBody.style.backgroundImage = "url('pug_cuerpo.png')"; // Restablece cara normal
+
+                // Cargar imagen de comida real y animar
+                foodImg.src = rutaImagen;
+                foodContainer.classList.remove('deliver-food');
+                void foodContainer.offsetWidth; 
+                foodContainer.classList.add('deliver-food');
+
+                reproducirSonidoCampana();
+            }, 1500); 
+        }
+
+        function mostrarAlerta(texto) {
+            alertBox.textContent = texto;
+            alertBox.style.display = "block";
+            setTimeout(() => { alertBox.style.display = "none"; }, 3000);
+        }
+
+        // Sonidos usando Web Audio API
+        function reproducirSonidoCampana() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start(); osc.stop(ctx.currentTime + 0.3);
+        }
+
+        function reproducirSonidoCelebracion() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            osc.start(); osc.stop(ctx.currentTime + 0.5);
+        }
+    </script>
+</body>
+</html>
