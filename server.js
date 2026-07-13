@@ -47,5 +47,5 @@ function emitirRegalo(username, giftName, count) {
 }
 // Escuchar en el puerto asignado por Replit
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(🚀 Servidor Pug Chef encendido correctamente en el puerto ${PORT});
+     console.log(`🚀 Servidor Pug Chef encendido correctamente en el puerto ${PORT}`);
 });
