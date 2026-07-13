@@ -1,14 +1,16 @@
 {
   "name": "pug-chef-live",
   "version": "1.0.0",
-  "description": "Juego interactivo de Pug Chef conectado a TikTok Live en Replit",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
+  "scripts": { 
+    "start": "node server.js" 
   },
   "dependencies": {
     "express": "^4.19.2",
     "socket.io": "^4.7.5",
     "tiktok-live-connector": "^1.1.10"
+  },
+  "overrides": {
+    "protobufjs": "^7.2.5"
   }
 }
